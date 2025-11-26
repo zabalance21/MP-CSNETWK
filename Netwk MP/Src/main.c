@@ -74,43 +74,47 @@ int main() {
     int my_sa = 5, my_sd = 5, opp_sa, opp_sd;
     char comm_mode[10] = "P2P";
 
+    // Battle setup (HOST and JOINER only)
     if (role == HOST || role == JOINER) {
         char pokemon_name[50];
-        printf("Enter your Pokémon name: ");
-        scanf("%s", pokemon_name);
+        int sa_uses = 5, sd_uses = 5; // default to 5
+        char comm_mode[10] = "P2P";
 
-        // Lookup chosen Pokémon in pokedex
-        int found = 0;
-        for (int i = 0; i < pokedex_count; i++) {
-            if (strcmp(pokedex[i].name, pokemon_name) == 0) {
-                myPokemon = pokedex[i];
-                found = 1;
-                break;
-            }
+        // Show available Pokémon to choose from
+        printf("\nAvailable Pokémon:\n");
+        for(int i = 0; i < pokedex_count; i++){
+            printf("%d: %s (%s/%s)\n", i+1, pokedex[i].name, pokedex[i].type1, pokedex[i].type2);
         }
-        if (!found) { printf("Pokémon not found!\n"); closesocket(sock); WSACleanup(); return 1; }
 
-        send_battle_setup(sock, &peer, pokemon_name, my_sa, my_sd, comm_mode);
-
-        char opp_name[50], opp_mode[10];
-        receive_battle_setup(sock, &peer, opp_name, &opp_sa, &opp_sd, opp_mode);
-
-        // Lookup opponent Pokémon
-        found = 0;
-        for (int i = 0; i < pokedex_count; i++) {
-            if (strcmp(pokedex[i].name, opp_name) == 0) {
-                oppPokemon = pokedex[i];
-                found = 1;
-                break;
-            }
+        int poke_choice;
+        printf("Choose a Pokémon by number: ");
+        scanf("%d", &poke_choice);
+        if(poke_choice < 1 || poke_choice > pokedex_count){
+            printf("Invalid choice!\n");
+            closesocket(sock);
+            WSACleanup();
+            return 1;
         }
-        if (!found) { printf("Opponent Pokémon not found!\n"); closesocket(sock); WSACleanup(); return 1; }
+        strcpy(pokemon_name, pokedex[poke_choice-1].name);
 
-        printf("Opponent Pokémon: %s\n", oppPokemon.name);
+        // Optionally ask for special boosts
+        printf("Special Attack uses (default 5): ");
+        scanf("%d", &sa_uses);
+        printf("Special Defense uses (default 5): ");
+        scanf("%d", &sd_uses);
+
+        // Send own BATTLE_SETUP
+        send_battle_setup(sock, &peer, pokemon_name, sa_uses, sd_uses, comm_mode);
+
+        // Receive opponent BATTLE_SETUP
+        char opp_pokemon[50], opp_mode[10];
+        int opp_sa, opp_sd;
+        receive_battle_setup(sock, &peer, opp_pokemon, &opp_sa, &opp_sd, opp_mode);
+
+        printf("\nOpponent Pokémon: %s\n", opp_pokemon);
         printf("Opponent SA uses: %d, SD uses: %d\n", opp_sa, opp_sd);
-        printf("Communication mode: %s\n", opp_mode);
+        printf("Communication mode: %s\n\n", opp_mode);
     }
-
     // ----------------------------
     // 6. Ready to start turn-based battle (Step 7)
     // ----------------------------
