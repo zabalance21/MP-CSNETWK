@@ -38,6 +38,7 @@ typedef struct {
 
 void start_battle(SOCKET sock, ROLE role, struct sockaddr_in *peer, int seed);
 int calculate_damage(int basePower, int attackerStat, float type1Effectiveness,float type2Effectiveness, int defenderStat);
+int load_pokedex(const char *filename, Pokemon pokedex[]);
 void use_stat_boost(int *boost_count);
 
 #endif
