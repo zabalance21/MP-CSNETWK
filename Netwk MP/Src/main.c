@@ -1,9 +1,11 @@
-#include "protocols.h"
-#include "network.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <winsock2.h>
+#include <battle.h>
+#include "protocols.h"
+#include "network.h"
 #pragma comment(lib, "ws2_32.lib")
 
 int main() {
@@ -12,6 +14,13 @@ int main() {
     struct sockaddr_in peer;
     ROLE role;
     int seed;
+
+    Pokemon pokedex[500];
+    int pokedex_count = load_pokedex("pokemon.csv", pokedex);
+    if (pokedex_count == 0) {
+        printf("Failed to load pokedex.\n");
+        return 1;
+    }
 
     if (WSAStartup(MAKEWORD(2,2), &wsa) != 0) {
         printf("Winsock initialization failed!\n");
@@ -61,29 +70,43 @@ int main() {
     }
     printf("Handshake success! Shared seed: %d\n", seed);
 
-    // Battle setup (HOST and JOINER only)
+    Pokemon myPokemon, oppPokemon;
+    int my_sa = 5, my_sd = 5, opp_sa, opp_sd;
+    char comm_mode[10] = "P2P";
+
     if (role == HOST || role == JOINER) {
         char pokemon_name[50];
-        int sa_uses, sd_uses;
-        char comm_mode[10] = "P2P";
-
-        // Ask user for their Pokémon and boosts
         printf("Enter your Pokémon name: ");
         scanf("%s", pokemon_name);
-        printf("Special Attack uses: ");
-        scanf("%d", &sa_uses);
-        printf("Special Defense uses: ");
-        scanf("%d", &sd_uses);
 
-        // Send own BATTLE_SETUP
-        send_battle_setup(sock, &peer, pokemon_name, sa_uses, sd_uses, comm_mode);
+        // Lookup chosen Pokémon in pokedex
+        int found = 0;
+        for (int i = 0; i < pokedex_count; i++) {
+            if (strcmp(pokedex[i].name, pokemon_name) == 0) {
+                myPokemon = pokedex[i];
+                found = 1;
+                break;
+            }
+        }
+        if (!found) { printf("Pokémon not found!\n"); closesocket(sock); WSACleanup(); return 1; }
 
-        // Receive opponent BATTLE_SETUP
-        char opp_pokemon[50], opp_mode[10];
-        int opp_sa, opp_sd;
-        receive_battle_setup(sock, &peer, opp_pokemon, &opp_sa, &opp_sd, opp_mode);
+        send_battle_setup(sock, &peer, pokemon_name, my_sa, my_sd, comm_mode);
 
-        printf("Opponent Pokémon: %s\n", opp_pokemon);
+        char opp_name[50], opp_mode[10];
+        receive_battle_setup(sock, &peer, opp_name, &opp_sa, &opp_sd, opp_mode);
+
+        // Lookup opponent Pokémon
+        found = 0;
+        for (int i = 0; i < pokedex_count; i++) {
+            if (strcmp(pokedex[i].name, opp_name) == 0) {
+                oppPokemon = pokedex[i];
+                found = 1;
+                break;
+            }
+        }
+        if (!found) { printf("Opponent Pokémon not found!\n"); closesocket(sock); WSACleanup(); return 1; }
+
+        printf("Opponent Pokémon: %s\n", oppPokemon.name);
         printf("Opponent SA uses: %d, SD uses: %d\n", opp_sa, opp_sd);
         printf("Communication mode: %s\n", opp_mode);
     }
