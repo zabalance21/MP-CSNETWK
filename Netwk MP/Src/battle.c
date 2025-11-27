@@ -1,7 +1,28 @@
 #include <stdio.h>
 #include <time.h>
-
+#include <string.h>
 #include "battle.h"
+//HERES JUST FOR TESTING
+// Hardcoded Move List (Definition for g_moves from battle.h)
+Move g_moves[MAX_MOVES] = {
+    {"Tackle", "normal", 40, CATEGORY_PHYSICAL},
+    {"Flamethrower", "fire", 90, CATEGORY_SPECIAL},
+    {"Earthquake", "ground", 100, CATEGORY_PHYSICAL},
+    {"Ice Beam", "ice", 90, CATEGORY_SPECIAL},
+    // Add more moves as needed for the 4-move set
+};
+
+// Helper function to find a Pokémon by name (if not already implemented)
+Pokemon get_pokemon_by_name(const char *name, Pokemon pokedex[], int count) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(pokedex[i].name, name) == 0) {
+            return pokedex[i];
+        }
+    }
+    // Return an empty/zeroed struct if not found
+    Pokemon empty = {0};
+    return empty;
+}
 
 int calculate_damage(int basePower, int attackerStat, float type1Effectiveness,float type2Effectiveness, int defenderStat){
     return (int)(basePower * attackerStat * type1Effectiveness * type2Effectiveness / defenderStat);
@@ -117,19 +138,109 @@ int load_pokedex(const char *filename, Pokemon pokedex[]) {
 
 
 void start_battle(SOCKET sock, ROLE role, struct sockaddr_in *peer, int seed,
-                  Pokemon myPokemon, Pokemon oppPokemon, int my_sa, int my_sd, int opp_sa, int opp_sd) {
-    srand(seed);
-    int myTurn = (role == HOST) ? 1 : 0;
+                  Pokemon myPokemon, Pokemon oppPokemon, int my_sa, int my_sd, int opp_sa, int opp_sd) {srand(seed);
+
+    // --- State and HP Tracking ---
+        BattleState currentState = STATE_SETUP; // Or STATE_WAITING_FOR_MOVE if skipping initial setup
+        int battleOver = 0;
+
+        // Track current health of both Pokémon
+        int my_current_hp = myPokemon.hp;
+        int opp_current_hp = oppPokemon.hp;
+
+        // Host starts with sequence number 1.
+        int current_seq_num = 1;
+
+        // Host is designated to go first.
+        int current_turn_is_my_turn = (role == HOST) ? 1 : 0;
+
+        // Store the move used in the current turn for damage calculation/reporting
+        char last_move_name[50] = {0};
+        Move selected_move; // The full move structure
+
+        // Variables for damage/HP calculation results
+        int damage_dealt_this_turn = 0;
+        int local_target_hp = 0;
+    int myTurn = (role == HOST) ? 1 : 0; // Host attacks first
     int battleOver = 0;
 
-    printf("\nBattle Start! Your Pokémon: %s vs Opponent Pokémon: %s\n", myPokemon.name, oppPokemon.name);
+    // 1. Initialize State
+    BattleState currentState = STATE_WAITING_FOR_MOVE;
 
+    printf("\nBattle Start! Your Pokémon: %s vs Opponent Pokémon: %s.\n", myPokemon.name, oppPokemon.name);
+    printf("Initial HP: %d vs %d\n", myPokemon.hp, oppPokemon.hp);
+
+    // Use local mutable copies of HP and boosts
+    int current_my_hp = myPokemon.hp;
+    int current_opp_hp = oppPokemon.hp;
+    int current_my_sa = my_sa;
+    int current_my_sd = my_sd;
+
+    // --- Main Battle Loop (State Machine) ---
     while (!battleOver) {
-        if (myTurn) {
-            // TODO: Host / active player turn logic
-        } else {
-            // TODO: Joiner / passive player turn logic
+
+        switch (currentState) {
+
+            case STATE_WAITING_FOR_MOVE:
+                printf("\n--- Turn Start ---\n");
+
+                if (myTurn) {
+                    // Current Peer is the ATTACKER
+                    printf("It's your turn to attack!\n");
+                    // PROMPT USER FOR MOVE HERE
+
+                    // TODO: The next step is to transition to STATE_ATTACK_PHASE
+                    // For now, we simulate the move selection and exit to prevent infinite loop.
+                    currentState = STATE_ATTACK_PHASE;
+
+                } else {
+                    // Current Peer is the DEFENDER
+                    printf("Waiting for opponent's move...\n");
+                    // TODO: The next step is to call a function to listen for ATTACK_ANNOUNCE
+
+                    // For now, we simulate receiving a message and exit to prevent infinite loop.
+                    // This blocking call needs to be implemented.
+                    // currentState = STATE_DEFENSE_PHASE;
+                }
+
+                // Add a small sleep to avoid tight loop when testing full flow
+                Sleep(100);
+                break;
+
+            case STATE_ATTACK_PHASE:
+                printf("[STATE] Attacking phase. Sending ATTACK_ANNOUNCE...\n");
+                // TODO: 1. Send ATTACK_ANNOUNCE (including selected move and SA boost usage).
+                // TODO: 2. Transition to STATE_DEFENSE_PHASE
+
+                // Temporarily exit to prevent an infinite loop
+                battleOver = 1;
+                break;
+
+            case STATE_DEFENSE_PHASE:
+                // This state is reached when the DEFENDER receives ATTACK_ANNOUNCE
+                printf("[STATE] Defense phase. Responding with DEFENSE_ANNOUNCE...\n");
+                // TODO: 1. Prompt Defender for SD boost usage.
+                // TODO: 2. Send DEFENSE_ANNOUNCE (including SD boost usage).
+                // TODO: 3. Transition to STATE_CALCULATION
+
+                // Temporarily exit
+                battleOver = 1;
+                break;
+
+            // ... (Add remaining states: STATE_CALCULATION, STATE_RESOLUTION, STATE_GAME_OVER) ...
+
+            default:
+                // For safety, handle unhandled states
+                printf("Error: Reached unhandled battle state.\n");
+                battleOver = 1;
+                break;
         }
-        myTurn = !myTurn;
+
+        // Add a check to prevent infinite loop during early development
+        if (battleOver) {
+            printf("\n--- Debug Stop: Battle Over ---\n");
+            break;
+        }
     }
 }
+
