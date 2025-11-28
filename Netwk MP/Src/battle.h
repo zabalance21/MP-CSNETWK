@@ -1,5 +1,6 @@
 #ifndef BATTLE_H
 #define BATTLE_H
+
 #include <winsock2.h>
 #include "protocols.h"
 #include "network.h"
@@ -34,12 +35,33 @@ typedef struct {
     float against_water;
 } Pokemon;
 
+/* Main battle loop for section 5.2 */
+void start_battle(
+    SOCKET sock,
+    ROLE role,
+    struct sockaddr_in *peer,
+    int seed,
+    Pokemon myPokemon,
+    Pokemon oppPokemon,
+    int my_sa,
+    int my_sd,
+    int opp_sa,
+    int opp_sd
+);
 
+/* Corrected damage function */
+int calculate_damage(int basePower, int attackerStat, float typeMultiplier, int defenderStat);
 
-void start_battle(SOCKET sock, ROLE role, struct sockaddr_in *peer, int seed,
-                  Pokemon myPokemon, Pokemon oppPokemon, int my_sa, int my_sd, int opp_sa, int opp_sd);
-int calculate_damage(int basePower, int attackerStat, float type1Effectiveness,float type2Effectiveness, int defenderStat);
+/* Load Pokémon data from CSV */
 int load_pokedex(const char *filename, Pokemon pokedex[]);
+
+/* Special attack / defense boost */
 void use_stat_boost(int *boost_count);
+
+/* NEW — used by 5.2 damage phase */
+float get_type_multiplier(Pokemon defender, const char *move_type);
+
+/* NEW — temporary move-type mapping */
+void get_move_type(const char *move_name, char *move_type_out);
 
 #endif
