@@ -1,0 +1,21 @@
+INSTRUCTIONS
+1. Open 2 cmd opens in the folder
+
+2. Compile everything use line below
+gcc main.c protocol.c network.c battle.c utils.c -o poke_battle.exe -lws2_32
+
+3. Type "poke_battle.exe"
+
+4. Let one of the terminals be HOST "0" and the other a JOINER "1"
+
+5. For IP of host open another cmd and type in "ipconfig" you will see ipv4 which is ur ip address, use that. ex: "  IPv4 Address. . . . . . . . . . . : 192.168.1.9 "
+
+6. choose ur pokemon
+
+7. type in any of the moves, "tackle", "ember" ,"water gun", "vinewhip"
+
+8. keep fighting till on of the pokemon dies
+
+9. End
+
+
